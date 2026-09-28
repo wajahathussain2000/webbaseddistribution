@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import AddCustomerModal from "@/app/components/AddCustomerModal";
 
 export default async function CustomersPage() {
   let customers: any[] = [];
@@ -19,9 +20,7 @@ export default async function CustomersPage() {
           <h1 className="text-2xl font-bold text-[#0F172A]">Customer Management</h1>
           <p className="text-sm text-[#64748B] mt-1">Manage retailers, pharmacies, hospitals, and view their ledgers.</p>
         </div>
-        <button className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
-          + Add Customer
-        </button>
+        <AddCustomerModal />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

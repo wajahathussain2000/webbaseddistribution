@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import AddReceiptModal from "@/app/components/AddReceiptModal";
 
 export default async function RecoveryPage() {
   let receipts: any[] = [];
@@ -26,9 +27,7 @@ export default async function RecoveryPage() {
           <button className="bg-white border border-[#E2E8F0] hover:bg-gray-50 text-[#0F172A] px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all">
             PDC Register
           </button>
-          <button className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
-            + New Receipt
-          </button>
+          <AddReceiptModal />
         </div>
       </div>
 

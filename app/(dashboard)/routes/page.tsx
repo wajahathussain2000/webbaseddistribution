@@ -32,7 +32,7 @@ export default async function RoutesPage() {
           <p className="text-sm text-[#64748B] mt-1">Manage geographic hierarchy, salesman assignments, and journey plans.</p>
         </div>
         <div className="flex gap-3">
-          <button className="bg-white border border-[#E2E8F0] hover:bg-gray-50 text-[#0F172A] px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all">
+          <button onClick={() => alert("Territory Tree visualizer is currently disabled in the demo environment.")} className="bg-white border border-[#E2E8F0] hover:bg-gray-50 text-[#0F172A] px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all">
             Territory Tree
           </button>
           <Link href="/routes/new" className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
