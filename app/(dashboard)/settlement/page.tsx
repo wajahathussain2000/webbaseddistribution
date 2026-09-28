@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import DemoAlertButton from "@/app/components/DemoAlertButton";
 
 export default async function SettlementPage() {
   let settlements: any[] = [];
@@ -28,12 +29,12 @@ export default async function SettlementPage() {
           <p className="text-sm text-[#64748B] mt-1">Reconcile cash, cheques, and expenses at the end of each salesman route.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => alert("Bank Deposits log is currently disabled in the demo environment.")} className="bg-white border border-[#E2E8F0] hover:bg-gray-50 text-[#0F172A] px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all">
+          <DemoAlertButton message="Bank Deposits log is currently disabled in the demo environment." className="bg-white border border-[#E2E8F0] hover:bg-gray-50 text-[#0F172A] px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all">
             Bank Deposits
-          </button>
-          <button onClick={() => alert("Settlement Workflow requires active Van Sales. This feature is locked in the current demo.")} className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
+          </DemoAlertButton>
+          <DemoAlertButton message="Settlement Workflow requires active Van Sales. This feature is locked in the current demo." className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
             + Start Settlement
-          </button>
+          </DemoAlertButton>
         </div>
       </div>
 
