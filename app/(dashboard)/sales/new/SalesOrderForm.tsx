@@ -65,10 +65,13 @@ export default function SalesOrderForm({ customers, products }: { customers: any
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden">
+    <form onSubmit={handleSubmit} className="bg-white border border-[#E2E8F0]/60 rounded-2xl shadow-xl shadow-slate-200/40 overflow-hidden transition-all duration-300">
       {/* Header Info */}
-      <div className="p-6 border-b border-[#E2E8F0] space-y-6">
-        <h2 className="text-lg font-semibold text-[#0F172A]">Order Details</h2>
+      <div className="p-8 border-b border-slate-100 space-y-6 bg-slate-50/50">
+        <h2 className="text-xl font-bold text-[#0F172A] flex items-center gap-2">
+          <span className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-sm">1</span>
+          Order Details
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-[#0F172A]">Customer / Shop</label>

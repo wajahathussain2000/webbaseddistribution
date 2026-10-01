@@ -27,11 +27,14 @@ export default function NewProductPage() {
           setIsSubmitting(true);
           await createProduct(formData);
         }} 
-        className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm p-8 space-y-8"
+        className="bg-white border border-[#E2E8F0]/60 rounded-2xl shadow-xl shadow-slate-200/40 p-8 space-y-10 transition-all duration-300"
       >
         {/* Section 1: Basic Info */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-[#0F172A] border-b border-[#E2E8F0] pb-2">Basic Information</h2>
+        <div className="space-y-5">
+          <h2 className="text-xl font-bold text-[#0F172A] border-b border-slate-100 pb-3 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-sm">1</span>
+            Basic Information
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-[#0F172A]">SKU</label>
