@@ -4,64 +4,62 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 
-export async function createPosTransaction(data: {
-  receiptNumber: string;
-  paymentMethod: string;
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-  amountTendered: number;
-  changeGiven: number;
+export async function createSalesInvoice(data: {
+  orderId: string;
+  invoiceNumber: string;
+  date: string;
   warehouseId: string;
-  accountId: string; // The Cash/Bank account to debit
+  accountId: string; // Cash or Accounts Receivable
   items: Array<{
     productId: string;
+    uomId: string;
     qty: number;
     rate: number;
-    discount: number;
-    total: number;
   }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
   const userTenant = await prisma.tenantUser.findFirst({
-    where: { userId: session.user.id },
-    include: { tenant: true }
+    where: { userId: session.user.id }
   });
   if (!userTenant) throw new Error("No tenant assigned to user");
   const tenantId = userTenant.tenantId;
+
+  const so = await prisma.salesOrder.findFirst({
+    where: { id: data.orderId, tenantId }
+  });
+  if (!so) throw new Error("Sales Order not found");
 
   const warehouse = await prisma.warehouse.findFirst({
     where: { id: data.warehouseId, tenantId }
   });
   if (!warehouse) throw new Error("Warehouse not found");
-  const branchId = warehouse.branchId;
+
+  const subtotal = data.items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+  const total = subtotal;
 
   const result = await prisma.$transaction(async (tx) => {
-    // 1. Create POS Transaction
-    const posTx = await tx.posTransaction.create({
+    // 1. Create Sales Invoice
+    const invoice = await tx.salesInvoice.create({
       data: {
         tenantId,
-        branchId,
-        receiptNumber: data.receiptNumber,
-        date: new Date(),
-        type: "SALE",
-        paymentMethod: data.paymentMethod,
-        subtotal: data.subtotal,
-        discount: data.discount,
-        tax: data.tax,
-        total: data.total,
-        amountTendered: data.amountTendered,
-        changeGiven: data.changeGiven,
+        orderId: so.id,
+        customerId: so.customerId,
+        branchId: so.branchId,
+        invoiceNumber: data.invoiceNumber,
+        date: data.date ? new Date(data.date) : new Date(),
+        status: "PAID", // Simplified for MVP
+        subtotal,
+        total,
+        amountPaid: total,
         items: {
           create: data.items.map(item => ({
             productId: item.productId,
+            uomId: item.uomId,
             qty: item.qty,
             rate: item.rate,
-            discount: item.discount,
-            total: item.total
+            total: item.qty * item.rate
           }))
         }
       }
@@ -69,7 +67,7 @@ export async function createPosTransaction(data: {
 
     let totalCogs = 0;
 
-    // 2. Inventory Deduction and COGS Calculation
+    // 2. Update Stock and COGS
     for (const item of data.items) {
       if (item.qty <= 0) continue;
 
@@ -81,8 +79,8 @@ export async function createPosTransaction(data: {
         throw new Error(`Insufficient stock for product ID: ${item.productId}`);
       }
 
-      const prod = await tx.product.findUnique({ where: { id: item.productId } });
-      const unitCost = prod?.cost || 0;
+      const prodCost = await tx.product.findUnique({ where: { id: item.productId } });
+      const unitCost = prodCost?.cost || 0;
       totalCogs += (unitCost * item.qty);
 
       // Deduct stock
@@ -95,29 +93,29 @@ export async function createPosTransaction(data: {
       await tx.stockLedger.create({
         data: {
           tenantId, productId: item.productId,
-          documentType: "POS_SALE", documentId: data.receiptNumber,
+          documentType: "SALES_INVOICE", documentId: data.invoiceNumber,
           qtyIn: 0, qtyOut: item.qty, balance: balance.qtyAvailable - item.qty,
           date: new Date()
         }
       });
     }
 
-    // 3. GL Entry (Double Entry)
+    // 3. GL Entry (Double-Entry: AR/Cash vs Revenue, COGS vs Inventory)
     const jv = await tx.journalVoucher.create({
       data: {
-        tenantId, branchId, date: new Date(),
-        voucherType: "RECEIPT",
-        referenceNumber: `POS-${data.receiptNumber}`, notes: `POS Sale ${data.receiptNumber}`, status: "POSTED"
+        tenantId, branchId: so.branchId, date: new Date(data.date),
+        voucherType: "JOURNAL",
+        referenceNumber: `INV-${data.invoiceNumber}`, notes: `Sales Invoice ${data.invoiceNumber}`, status: "POSTED"
       }
     });
 
-    // Debit Cash/Bank (Asset)
+    // Debit Selected Account (Asset - Cash/Bank/AR)
     await tx.journalEntry.create({
-      data: { voucherId: jv.id, accountId: data.accountId, notes: "POS Cash Receipt", type: "DEBIT", amount: data.total }
+      data: { voucherId: jv.id, accountId: data.accountId, notes: "Sales Receipt / Receivable", type: "DEBIT", amount: total, costCentreId: so.customerId }
     });
-    // Credit POS Sales (Revenue)
+    // Credit Sales (Revenue)
     await tx.journalEntry.create({
-      data: { voucherId: jv.id, accountId: "sales-account-id-placeholder", notes: "POS Revenue", type: "CREDIT", amount: data.total }
+      data: { voucherId: jv.id, accountId: "sales-account-id-placeholder", notes: "Sales Revenue", type: "CREDIT", amount: total, costCentreId: so.customerId }
     });
     // Debit COGS (Expense)
     await tx.journalEntry.create({
@@ -125,13 +123,19 @@ export async function createPosTransaction(data: {
     });
     // Credit Inventory (Asset)
     await tx.journalEntry.create({
-      data: { voucherId: jv.id, accountId: "inventory-account-id-placeholder", notes: "Inventory Issued for POS Sale", type: "CREDIT", amount: totalCogs }
+      data: { voucherId: jv.id, accountId: "inventory-account-id-placeholder", notes: "Inventory Deduction", type: "CREDIT", amount: totalCogs }
     });
 
-    return posTx;
+    // 4. Mark PO as COMPLETED
+    await tx.salesOrder.update({
+      where: { id: so.id },
+      data: { status: "COMPLETED" }
+    });
+
+    return invoice;
   });
 
-  revalidatePath("/pos");
+  revalidatePath("/sales");
   revalidatePath("/inventory");
-  return { success: true, transactionId: result.id };
+  return { success: true, invoiceId: result.id };
 }

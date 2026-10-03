@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { auth } from "@/auth";
 
 export default async function InventoryPage() {
   // Fetch warehouses
@@ -7,25 +8,18 @@ export default async function InventoryPage() {
   let balances: any[] = [];
   
   try {
-    warehouses = await prisma.warehouse.findMany();
-    
-    // Auto-create a Main Warehouse if none exists for demo purposes
-    if (warehouses.length === 0) {
-      let tenant = await prisma.tenant.findFirst();
-      if (!tenant) {
-        tenant = await prisma.tenant.create({ data: { name: "Default Company" } });
-      }
-      let branch = await prisma.branch.findFirst({ where: { tenantId: tenant.id } });
-      if (!branch) {
-        branch = await prisma.branch.create({ data: { tenantId: tenant.id, name: "Main Branch", type: "HEAD_OFFICE" } });
-      }
-      const newWarehouse = await prisma.warehouse.create({
-        data: { tenantId: tenant.id, branchId: branch.id, name: "Central Warehouse", type: "MAIN" }
-      });
-      warehouses = [newWarehouse];
-    }
+    const session = await auth();
+    if (!session?.user?.id) return <div>Unauthorized</div>;
+
+    const userTenant = await prisma.tenantUser.findFirst({
+      where: { userId: session.user.id }
+    });
+    if (!userTenant) return <div>No tenant assigned</div>;
+
+    warehouses = await prisma.warehouse.findMany({ where: { tenantId: userTenant.tenantId } });
 
     balances = await prisma.stockBalance.findMany({
+      where: { warehouse: { tenantId: userTenant.tenantId } },
       include: {
         product: true,
         warehouse: true,

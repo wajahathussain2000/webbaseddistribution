@@ -1,29 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import SalesOrderForm from "./SalesOrderForm";
+import { auth } from "@/auth";
 
 export default async function NewSalesOrderPage() {
   // Fetch required data for dropdowns
   let customers: any[] = [];
   let products: any[] = [];
+  let accounts: any[] = [];
 
   try {
-    // If no customers exist, we'll create a dummy one just so the form works in this demo
-    customers = await prisma.customer.findMany();
-    if (customers.length === 0) {
-      let tenant = await prisma.tenant.findFirst();
-      if (!tenant) {
-        tenant = await prisma.tenant.create({ data: { name: "Default Company" } });
-      }
-      const dummyCustomer = await prisma.customer.create({
-        data: { tenantId: tenant.id, name: "City Pharmacy" }
-      });
-      customers = [dummyCustomer];
-    }
+    const session = await auth();
+    if (!session?.user?.id) return <div>Unauthorized</div>;
 
+    const userTenant = await prisma.tenantUser.findFirst({
+      where: { userId: session.user.id }
+    });
+    if (!userTenant) return <div>No tenant assigned</div>;
+
+    customers = await prisma.customer.findMany({ where: { tenantId: userTenant.tenantId } });
     products = await prisma.product.findMany({
-      where: { isActive: true },
+      where: { tenantId: userTenant.tenantId, isActive: true },
       select: { id: true, code: true, nameEn: true, cost: true, tradePrice: true, retailPrice: true, baseUomId: true }
+    });
+
+    accounts = await prisma.account.findMany({
+      where: { tenantId: userTenant.tenantId, type: { in: ["ASSET"] } }, // Sales receipts typically hit ASSET (Bank/Cash/AR)
+      select: { id: true, name: true, code: true, type: true }
     });
   } catch (err) {
     console.error(err);
@@ -43,7 +46,7 @@ export default async function NewSalesOrderPage() {
         </div>
       </div>
 
-      <SalesOrderForm customers={customers} products={products} />
+      <SalesOrderForm customers={customers} products={products} accounts={accounts} />
     </div>
   );
 }

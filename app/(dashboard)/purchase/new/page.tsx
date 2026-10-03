@@ -1,30 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import PurchaseOrderForm from "./PurchaseOrderForm";
+import { auth } from "@/auth";
 
 export default async function NewPurchaseOrderPage() {
   // Fetch required data for dropdowns
   let suppliers: any[] = [];
   let products: any[] = [];
+  let accounts: any[] = [];
 
   try {
-    // If no suppliers exist, we'll create a dummy one just so the form works in this demo
-    suppliers = await prisma.supplier.findMany();
-    if (suppliers.length === 0) {
-      let tenant = await prisma.tenant.findFirst();
-      if (!tenant) {
-        tenant = await prisma.tenant.create({ data: { name: "Default Company" } });
-      }
-      const dummySupplier = await prisma.supplier.create({
-        data: { tenantId: tenant.id, name: "GSK Pharmaceuticals" }
-      });
-      suppliers = [dummySupplier];
-    }
+    const session = await auth();
+    if (!session?.user?.id) return <div>Unauthorized</div>;
+
+    const userTenant = await prisma.tenantUser.findFirst({
+      where: { userId: session.user.id }
+    });
+    if (!userTenant) return <div>No tenant assigned</div>;
+
+    suppliers = await prisma.supplier.findMany({ where: { tenantId: userTenant.tenantId } });
 
     products = await prisma.product.findMany({
-      where: { isActive: true },
-      // @ts-ignore (Temporary until prisma generate runs successfully)
+      where: { tenantId: userTenant.tenantId, isActive: true },
+      // @ts-ignore
       select: { id: true, code: true, barcode: true, nameEn: true, cost: true, tradePrice: true, baseUomId: true }
+    });
+
+    accounts = await prisma.account.findMany({
+      where: { tenantId: userTenant.tenantId, type: { in: ["ASSET", "LIABILITY"] } },
+      select: { id: true, name: true, code: true, type: true }
     });
   } catch (err) {
     console.error(err);
@@ -44,7 +48,7 @@ export default async function NewPurchaseOrderPage() {
         </div>
       </div>
 
-      <PurchaseOrderForm suppliers={suppliers} products={products} />
+      <PurchaseOrderForm suppliers={suppliers} products={products} accounts={accounts} />
     </div>
   );
 }

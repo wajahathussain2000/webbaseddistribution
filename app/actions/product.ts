@@ -3,21 +3,26 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 
 export async function createProduct(formData: FormData) {
-  // In a real app, we get the tenantId from the logged-in user's session.
-  // For this prototype, we'll fetch the first tenant or create one.
-  let tenant = await prisma.tenant.findFirst();
-  if (!tenant) {
-    tenant = await prisma.tenant.create({ data: { name: "Default Company" } });
-  }
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
-  // We need a Base UOM to create a product. Fetch or create a default one.
-  let uom = await prisma.unitOfMeasure.findFirst({ where: { tenantId: tenant.id } });
-  if (!uom) {
-    uom = await prisma.unitOfMeasure.create({ 
-      data: { tenantId: tenant.id, code: "BOX", name: "Box" } 
-    });
+  const userTenant = await prisma.tenantUser.findFirst({
+    where: { userId: session.user.id }
+  });
+  if (!userTenant) throw new Error("No tenant assigned to user");
+
+  const tenantId = userTenant.tenantId;
+
+  const uomIdForm = formData.get("baseUomId") as string;
+  let uomId = uomIdForm;
+
+  if (!uomId) {
+    const uom = await prisma.unitOfMeasure.findFirst({ where: { tenantId } });
+    if (!uom) throw new Error("No Unit of Measure found for this tenant. Please create one first.");
+    uomId = uom.id;
   }
 
   const code = formData.get("code") as string;
@@ -47,7 +52,7 @@ export async function createProduct(formData: FormData) {
 
   await prisma.product.create({
     data: {
-      tenantId: tenant.id,
+      tenantId: tenantId,
       code,
       nameEn,
       type,
@@ -55,7 +60,7 @@ export async function createProduct(formData: FormData) {
       tradePrice,
       retailPrice,
       cost,
-      baseUomId: uom.id,
+      baseUomId: uomId,
       isActive: true,
       pharmacyFields,
       fmcgFields

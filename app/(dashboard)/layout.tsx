@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import { 
   LayoutDashboard, ShoppingCart, MonitorSmartphone, Users, RefreshCcw, Map, DollarSign,
   PackageSearch, Truck, ShieldCheck, Database, Receipt, FileText, Activity, 
-  Settings, Server, Archive, CreditCard, Stethoscope, Store, Lock, GitMerge, CheckSquare, BrainCircuit, Box, HeartHandshake, Briefcase, Target, PieChart, Users2
+  Settings, Server, Archive, CreditCard, Stethoscope, Store, Lock, GitMerge, CheckSquare, BrainCircuit, Box, HeartHandshake, Briefcase, Target, PieChart, Users2, BarChart
 } from "lucide-react";
 
 const navLinkClass = "flex items-center px-3 py-2 text-sm font-medium rounded-md text-[#64748B] hover:text-teal-700 hover:bg-teal-50 gap-3";
@@ -33,11 +33,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/sales" className={navLinkClass}>
             <ShoppingCart size={18} /> Order Management
           </Link>
+          <Link href="/sales/invoices/new" className={navLinkClass}>
+            <FileText size={18} /> Sales Invoices (DC)
+          </Link>
           <Link href="/pos" className={navLinkClass}>
             <MonitorSmartphone size={18} /> Retail POS
           </Link>
           <Link href="/customers" className={navLinkClass}>
             <Users size={18} /> Customer Dashboard
+          </Link>
+          <Link href="/sales/returns/new" className={navLinkClass}>
+            <RefreshCcw size={18} /> Sales Returns (CN)
           </Link>
           <Link href="/recovery" className={navLinkClass}>
             <RefreshCcw size={18} /> Credit & Recovery
@@ -72,11 +78,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/claims" className={navLinkClass}>
             <RefreshCcw size={18} /> Returns & Claims
           </Link>
+          <Link href="/purchase/returns/new" className={navLinkClass}>
+            <RefreshCcw size={18} /> Purchase Returns (DN)
+          </Link>
           <Link href="/inventory" className={navLinkClass}>
             <Box size={18} /> Inventory & Warehouse
           </Link>
           <Link href="/warehouse" className={navLinkClass}>
             <Database size={18} /> Warehouse Operations
+          </Link>
+          <Link href="/warehouse/grn/new" className={navLinkClass}>
+            <PackageSearch size={18} /> Goods Receipt Note
+          </Link>
+          <Link href="/inventory/adjustments/new" className={navLinkClass}>
+            <RefreshCcw size={18} /> Stock Adjustments
           </Link>
           <Link href="/valuation" className={navLinkClass}>
             <PieChart size={18} /> Stock Valuation (Costing)
@@ -102,6 +117,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/finance" className={navLinkClass}>
             <FileText size={18} /> Accounting & Ledgers
           </Link>
+          <Link href="/finance/vouchers/new" className={navLinkClass}>
+            <DollarSign size={18} /> Receipt & Payment Vouchers
+          </Link>
           <Link href="/expenses" className={navLinkClass}>
             <Receipt size={18} /> Expense Management
           </Link>
@@ -119,6 +137,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link href="/reports" className={navLinkClass}>
             <Activity size={18} /> Reports & Analytics
+          </Link>
+          <Link href="/reports/profit-loss" className={navLinkClass}>
+            <PieChart size={18} /> Profit & Loss
+          </Link>
+          <Link href="/reports/balance-sheet" className={navLinkClass}>
+            <BarChart size={18} /> Balance Sheet
+          </Link>
+          <Link href="/reports/trial-balance" className={navLinkClass}>
+            <Activity size={18} /> Trial Balance
+          </Link>
+          <Link href="/reports/customer-ledger" className={navLinkClass}>
+            <Users size={18} /> Customer Ledger
           </Link>
           <Link href="/approvals" className={navLinkClass}>
             <CheckSquare size={18} /> Workflow Approvals

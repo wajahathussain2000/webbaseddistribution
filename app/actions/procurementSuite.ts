@@ -125,7 +125,6 @@ export async function settleSuitePayment(data: any) {
       discount: data.cashDiscountAmount,
       tax: data.taxAmount,
       total: data.paidAmount, // This handles penalty implicitly via net calculation
-      paymentMethod: data.mode,
       // Create associated payment
     }
   });

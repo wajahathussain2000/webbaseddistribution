@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSalesOrder } from "@/app/actions/sales";
 
-export default function SalesOrderForm({ customers, products }: { customers: any[], products: any[] }) {
+export default function SalesOrderForm({ customers, products, accounts }: { customers: any[], products: any[], accounts: any[] }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form State
   const [customerId, setCustomerId] = useState(customers[0]?.id || "");
+  const [accountId, setAccountId] = useState(accounts[0]?.id || "");
   const [orderNumber, setOrderNumber] = useState(`SO-${Math.floor(Math.random() * 10000)}`);
   const [notes, setNotes] = useState("");
   
@@ -57,6 +58,7 @@ export default function SalesOrderForm({ customers, products }: { customers: any
     setIsSubmitting(true);
     await createSalesOrder({
       customerId,
+      accountId,
       orderNumber,
       notes,
       items
@@ -72,7 +74,7 @@ export default function SalesOrderForm({ customers, products }: { customers: any
           <span className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-sm">1</span>
           Order Details
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-[#0F172A]">Customer / Shop</label>
             <select 
@@ -81,6 +83,16 @@ export default function SalesOrderForm({ customers, products }: { customers: any
             >
               <option value="">Select Customer...</option>
               {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-[#0F172A]">Payment Method / GL</label>
+            <select 
+              value={accountId} onChange={e => setAccountId(e.target.value)} required
+              className="px-3 py-2 border border-[#E2E8F0] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+            >
+              <option value="">Select Account...</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
