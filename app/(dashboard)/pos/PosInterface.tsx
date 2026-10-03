@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { createPosTransaction } from "@/app/actions/pos";
 
-export default function PosInterface({ products, warehouses, accounts }: { products: any[], warehouses: any[], accounts: any[] }) {
+export default function PosInterface({ products, warehouses, accounts, settings }: { products: any[], warehouses: any[], accounts: any[], settings?: any }) {
   const [cart, setCart] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -12,6 +12,9 @@ export default function PosInterface({ products, warehouses, accounts }: { produ
   
   const [amountTendered, setAmountTendered] = useState<string>("");
 
+  // Tax & Discount Engine
+  const [globalDiscountPct, setGlobalDiscountPct] = useState<number>(parseFloat(settings?.DEFAULT_DISCOUNT_PCT || "0"));
+  const [globalTaxPct, setGlobalTaxPct] = useState<number>(parseFloat(settings?.DEFAULT_TAX_PCT || "0"));
   const filteredProducts = useMemo(() => {
     return products.filter(p => 
       p.nameEn.toLowerCase().includes(search.toLowerCase()) || 
@@ -56,8 +59,10 @@ export default function PosInterface({ products, warehouses, accounts }: { produ
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-  const discount = 0; // simplified for MVP
-  const tax = 0; // simplified for MVP
+  
+  // Tax & Discount Calculation
+  const discount = (subtotal * globalDiscountPct) / 100;
+  const tax = ((subtotal - discount) * globalTaxPct) / 100;
   const total = subtotal - discount + tax;
 
   const tendered = parseFloat(amountTendered) || 0;
@@ -192,7 +197,28 @@ export default function PosInterface({ products, warehouses, accounts }: { produ
             <span>Subtotal</span>
             <span>Rs {subtotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-lg font-bold text-slate-900 border-b border-slate-200 pb-3">
+          
+          <div className="flex justify-between items-center text-sm text-slate-600">
+            <span>Discount (%)</span>
+            <input 
+              type="number" 
+              value={globalDiscountPct || ""} 
+              onChange={e => setGlobalDiscountPct(parseFloat(e.target.value) || 0)} 
+              className="w-20 text-right p-1 border border-slate-200 rounded focus:border-teal-500 focus:ring-0"
+            />
+          </div>
+          
+          <div className="flex justify-between items-center text-sm text-slate-600">
+            <span>Tax (GST/VAT %)</span>
+            <input 
+              type="number" 
+              value={globalTaxPct || ""} 
+              onChange={e => setGlobalTaxPct(parseFloat(e.target.value) || 0)} 
+              className="w-20 text-right p-1 border border-slate-200 rounded focus:border-teal-500 focus:ring-0"
+            />
+          </div>
+
+          <div className="flex justify-between text-lg font-bold text-slate-900 border-t border-b border-slate-200 py-3 mt-2">
             <span>Total</span>
             <span className="text-teal-600">Rs {total.toFixed(2)}</span>
           </div>

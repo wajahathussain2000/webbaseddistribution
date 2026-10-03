@@ -1,7 +1,25 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import CompanyProfileForm from "./CompanyProfileForm";
+import TaxesAndDiscountsForm from "./TaxesAndDiscountsForm";
 
 export default async function SetupPage() {
+  const session = await auth();
+  if (!session?.user?.id) return <div>Unauthorized</div>;
+
+  const userTenant = await prisma.tenantUser.findFirst({
+    where: { userId: session.user.id },
+    include: { tenant: true }
+  });
+  
+  if (!userTenant) return <div>No tenant assigned</div>;
+  const tenant = userTenant.tenant;
+
+  const rawSettings = await prisma.systemSetting.findMany({
+    where: { tenantId: tenant.id }
+  });
+  const settings = rawSettings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as Record<string, string>);
   
   const checklist = [
     { name: "Company & branches", desc: "Names, addresses, tax numbers, licences, logos.", ready: true },
@@ -46,10 +64,12 @@ export default async function SetupPage() {
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
              Import Master Data (Excel)
           </button>
-          <button className="bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-md transition-all active:scale-[0.98]">
-            Save Settings
-          </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <CompanyProfileForm tenant={tenant} />
+        <TaxesAndDiscountsForm settings={settings} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

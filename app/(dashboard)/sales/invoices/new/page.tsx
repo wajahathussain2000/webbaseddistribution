@@ -33,6 +33,11 @@ export default async function NewSalesInvoicePage() {
     select: { id: true, name: true, code: true }
   });
 
+  const rawSettings = await prisma.systemSetting.findMany({
+    where: { tenantId: userTenant.tenantId }
+  });
+  const settings = rawSettings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as Record<string, string>);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -47,7 +52,7 @@ export default async function NewSalesInvoicePage() {
         </div>
       </div>
 
-      <InvoiceForm pendingSOs={pendingSOs} warehouses={warehouses} accounts={accounts} />
+      <InvoiceForm pendingSOs={pendingSOs} warehouses={warehouses} accounts={accounts} settings={settings} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSalesInvoice } from "@/app/actions/salesInvoice";
 
-export default function InvoiceForm({ pendingSOs, warehouses, accounts }: { pendingSOs: any[], warehouses: any[], accounts: any[] }) {
+export default function InvoiceForm({ pendingSOs, warehouses, accounts, settings }: { pendingSOs: any[], warehouses: any[], accounts: any[], settings?: any }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -18,6 +18,10 @@ export default function InvoiceForm({ pendingSOs, warehouses, accounts }: { pend
 
   // Default to full quantity for MVP
   const [deliverData, setDeliverData] = useState<Record<string, number>>({});
+  
+  // Tax & Discount Engine
+  const [globalDiscountPct, setGlobalDiscountPct] = useState<number>(parseFloat(settings?.DEFAULT_DISCOUNT_PCT || "0"));
+  const [globalTaxPct, setGlobalTaxPct] = useState<number>(parseFloat(settings?.DEFAULT_TAX_PCT || "0"));
 
   const handleSoSelect = (soId: string) => {
     setSelectedSoId(soId);
@@ -46,12 +50,22 @@ export default function InvoiceForm({ pendingSOs, warehouses, accounts }: { pend
 
     if (!selectedSO) return;
 
-    const items = selectedSO.items.map((item: any) => ({
-      productId: item.productId,
-      uomId: item.uomId,
-      qty: deliverData[item.productId] || 0,
-      rate: item.rate
-    })).filter((i: any) => i.qty > 0);
+    const items = selectedSO.items.map((item: any) => {
+      const qty = deliverData[item.productId] || 0;
+      const rate = item.rate;
+      const lineTotal = qty * rate;
+      const lineDiscount = (lineTotal * globalDiscountPct) / 100;
+      const lineTax = ((lineTotal - lineDiscount) * globalTaxPct) / 100;
+      
+      return {
+        productId: item.productId,
+        uomId: item.uomId,
+        qty: qty,
+        rate: rate,
+        discount: lineDiscount,
+        tax: lineTax
+      };
+    }).filter((i: any) => i.qty > 0);
 
     if (items.length === 0) {
       alert("Please deliver at least one item.");
@@ -157,7 +171,27 @@ export default function InvoiceForm({ pendingSOs, warehouses, accounts }: { pend
       )}
 
       {selectedSO && (
-        <div className="p-4 border-t border-[#E2E8F0] bg-gray-50 flex justify-end gap-4">
+        <div className="p-4 border-t border-[#E2E8F0] bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex gap-4 items-center">
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-500 mb-1">Global Discount (%)</label>
+              <input 
+                type="number" 
+                value={globalDiscountPct || ""} 
+                onChange={e => setGlobalDiscountPct(parseFloat(e.target.value) || 0)} 
+                className="w-24 px-2 py-1 border border-slate-200 rounded"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-500 mb-1">Tax (GST/VAT %)</label>
+              <input 
+                type="number" 
+                value={globalTaxPct || ""} 
+                onChange={e => setGlobalTaxPct(parseFloat(e.target.value) || 0)} 
+                className="w-24 px-2 py-1 border border-slate-200 rounded"
+              />
+            </div>
+          </div>
           <button type="submit" disabled={isSubmitting} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-70">
             {isSubmitting ? "Generating Invoice..." : "Generate Invoice & Dispatch"}
           </button>

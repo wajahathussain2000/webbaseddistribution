@@ -189,8 +189,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/fmcg" className={navLinkClass}>
             <Store size={18} /> FMCG Trade
           </Link>
-          <Link href="/security" className={navLinkClass}>
-            <Lock size={18} /> Users & Security
+          <Link href="/users" className={navLinkClass}>
+            <Lock size={18} /> Users & Roles
           </Link>
 
           <div className="pt-4 pb-1">

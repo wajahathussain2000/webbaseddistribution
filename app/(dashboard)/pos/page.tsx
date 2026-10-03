@@ -28,6 +28,11 @@ export default async function POSPage() {
     select: { id: true, name: true, code: true }
   });
 
+  const rawSettings = await prisma.systemSetting.findMany({
+    where: { tenantId: userTenant.tenantId }
+  });
+  const settings = rawSettings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as Record<string, string>);
+
   return (
     <div className="h-[calc(100vh-4rem)] -m-6 flex flex-col bg-slate-100">
       <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
@@ -46,7 +51,7 @@ export default async function POSPage() {
         </div>
       </div>
 
-      <PosInterface products={products} warehouses={warehouses} accounts={accounts} />
+      <PosInterface products={products} warehouses={warehouses} accounts={accounts} settings={settings} />
     </div>
   );
 }
