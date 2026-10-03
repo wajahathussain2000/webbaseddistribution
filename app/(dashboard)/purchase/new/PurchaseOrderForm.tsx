@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createPurchaseOrder } from "@/app/actions/purchase";
+import { createPurchaseOrder, createQuickSupplier } from "@/app/actions/purchase";
 import { createQuickProduct } from "@/app/actions/product";
 import AiScannerButton from "@/app/components/AiScannerButton";
 
@@ -11,9 +11,11 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localProducts, setLocalProducts] = useState(products);
+  const [localSuppliers, setLocalSuppliers] = useState(suppliers);
 
   // Form State
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || "");
+  const [tempSupplierName, setTempSupplierName] = useState("");
   const [accountId, setAccountId] = useState(accounts[0]?.id || "");
   const [poNumber, setPoNumber] = useState(`PO-${Math.floor(Math.random() * 10000)}`);
   const [expectedDate, setExpectedDate] = useState("");
@@ -28,6 +30,16 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
     if (data.expectedDate) setExpectedDate(data.expectedDate);
     if (data.notes) setNotes(data.notes);
 
+    if (data.supplierName) {
+      const matchedSupplier = localSuppliers.find(s => s.name.toLowerCase().includes(data.supplierName.toLowerCase()));
+      if (matchedSupplier) {
+        setSupplierId(matchedSupplier.id);
+        setTempSupplierName("");
+      } else {
+        setTempSupplierName(data.supplierName);
+      }
+    }
+
     if (data.items && data.items.length > 0) {
       const newItems = data.items.map((aiItem: any) => {
         const matchedProduct = localProducts.find(p => p.nameEn.toLowerCase().includes(aiItem.name.toLowerCase()));
@@ -41,7 +53,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
         };
       });
       setItems(newItems);
-      alert(`AI successfully scanned ${newItems.length} items from the invoice!`);
+      alert(`AI successfully scanned invoice!`);
     }
   };
 
@@ -78,7 +90,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
     setItems(newItems);
   };
 
-  const handleQuickAdd = async (index: number, tempName: string, rate: number) => {
+  const handleQuickAddProduct = async (index: number, tempName: string, rate: number) => {
     try {
       const newProduct = await createQuickProduct(tempName, rate);
       setLocalProducts([...localProducts, newProduct]);
@@ -95,6 +107,17 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
       setItems(newItems);
     } catch (err) {
       alert("Failed to create product. Please ensure you have a Unit of Measure created.");
+    }
+  };
+
+  const handleQuickAddSupplier = async () => {
+    try {
+      const newSupplier = await createQuickSupplier(tempSupplierName);
+      setLocalSuppliers([...localSuppliers, newSupplier]);
+      setSupplierId(newSupplier.id);
+      setTempSupplierName("");
+    } catch (err) {
+      alert("Failed to create supplier.");
     }
   };
 
@@ -118,7 +141,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
     setIsSubmitting(false);
 
     // Prepare data for printing
-    const selectedSupplier = suppliers.find(s => s.id === supplierId);
+    const selectedSupplier = localSuppliers.find(s => s.id === supplierId);
     const enrichedItems = items.map(item => {
       const p = localProducts.find(prod => prod.id === item.productId);
       return {
@@ -160,12 +183,28 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-[#0F172A]">Supplier</label>
             <select
-              value={supplierId} onChange={e => setSupplierId(e.target.value)} required
+              value={supplierId} onChange={e => { setSupplierId(e.target.value); setTempSupplierName(""); }} required
               className="px-3 py-2 border border-[#E2E8F0] rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
             >
               <option value="">Select Supplier...</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {localSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
+            {tempSupplierName && (
+              <div className="mt-1.5 p-2 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-md">
+                <div className="flex items-center gap-1.5 mb-1.5 font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  AI Scanned: "{tempSupplierName}"
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="opacity-80">Not found.</span>
+                  <button type="button" onClick={handleQuickAddSupplier} className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded shadow-sm text-xs transition-colors">
+                    + Add as New Supplier
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-[#0F172A]">Payment Method / GL</label>
@@ -229,7 +268,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="opacity-80">Product not found.</span>
-                        <button type="button" onClick={() => handleQuickAdd(index, item.tempName, item.rate)} className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded shadow-sm text-xs transition-colors">
+                        <button type="button" onClick={() => handleQuickAddProduct(index, item.tempName, item.rate)} className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded shadow-sm text-xs transition-colors">
                           + Add as New Product
                         </button>
                       </div>

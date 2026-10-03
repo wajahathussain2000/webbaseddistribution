@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
 Analyze the provided invoice/bill image and extract the information into a strict JSON object.
 Return ONLY valid JSON. The JSON structure MUST exactly match this:
 {
+  "supplierName": "string (extract the vendor/supplier name who billed this, if any)",
   "poNumber": "string (extract invoice or order number, if none make one up based on date)",
   "expectedDate": "string (YYYY-MM-DD format, extract the date)",
   "notes": "string (any extra vendor info, addresses, or terms)",

@@ -65,3 +65,24 @@ export async function createPurchaseOrder(data: {
   revalidatePath("/purchase");
   return { success: true };
 }
+
+export async function createQuickSupplier(name: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const userTenant = await prisma.tenantUser.findFirst({
+    where: { userId: session.user.id }
+  });
+  if (!userTenant) throw new Error("No tenant assigned to user");
+
+  const supplier = await prisma.supplier.create({
+    data: {
+      tenantId: userTenant.tenantId,
+      code: `SUP-${Math.floor(Math.random() * 10000)}`,
+      name,
+      isActive: true,
+    }
+  });
+
+  return supplier;
+}
