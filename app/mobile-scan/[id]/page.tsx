@@ -92,7 +92,7 @@ export default function MobileScanPage({ params }: { params: Promise<{ id: strin
           <button 
             type="button" 
             onClick={() => fileInputRef.current?.click()}
-            className="w-full max-w-sm bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
+            className="w-full max-w-sm bg-teal-600 hover:bg-teal-700 text-white px-6 py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />

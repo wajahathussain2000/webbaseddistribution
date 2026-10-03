@@ -136,11 +136,11 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
         type="button" 
         onClick={() => setShowOptions(!showOptions)}
         disabled={isScanning}
-        className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm border border-purple-200 disabled:opacity-50"
+        className="bg-teal-50 hover:bg-teal-100 text-teal-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm border border-teal-200 disabled:opacity-50"
       >
         {isScanning ? (
           <span className="flex items-center gap-2">
-            <svg className="animate-spin h-4 w-4 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-teal-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -171,7 +171,7 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
           </button>
           <button
             onClick={startMobileScan}
-            className="w-full text-left px-4 py-3 hover:bg-purple-50 text-purple-700 text-sm font-medium flex items-center gap-3"
+            className="w-full text-left px-4 py-3 hover:bg-teal-50 text-teal-700 text-sm font-medium flex items-center gap-3"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -197,17 +197,17 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
             <h3 className="text-xl font-bold text-slate-800 mb-2">Scan with Mobile</h3>
             <p className="text-slate-500 text-sm mb-6">Open your phone's camera and scan this QR code to capture the invoice.</p>
             
-            <div className="bg-white p-4 rounded-xl border-2 border-purple-100 mx-auto inline-block">
+            <div className="bg-white p-4 rounded-xl border-2 border-teal-100 mx-auto inline-block">
               {qrUrl && (
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&color=6B21A8`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&color=0F766E`} 
                   alt="QR Code" 
                   className="w-48 h-48"
                 />
               )}
             </div>
 
-            <div className="mt-6 flex items-center justify-center gap-3 text-purple-600 font-medium">
+            <div className="mt-6 flex items-center justify-center gap-3 text-teal-600 font-medium">
               <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
