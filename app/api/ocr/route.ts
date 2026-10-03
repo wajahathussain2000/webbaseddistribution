@@ -57,7 +57,8 @@ If any fields cannot be found, provide reasonable defaults (e.g., empty string f
 
     const sessionId = formData.get("sessionId") as string;
     if (sessionId) {
-      import("@/lib/prisma").then(async ({ prisma }) => {
+      try {
+        const { prisma } = await import("@/lib/prisma");
         await prisma.mobileScanSession.update({
           where: { id: sessionId },
           data: {
@@ -65,7 +66,9 @@ If any fields cannot be found, provide reasonable defaults (e.g., empty string f
             extractedData: jsonStr
           }
         });
-      }).catch(e => console.error("Failed to update session:", e));
+      } catch (e) {
+        console.error("Failed to update session:", e);
+      }
     }
 
     return NextResponse.json(parsed);
