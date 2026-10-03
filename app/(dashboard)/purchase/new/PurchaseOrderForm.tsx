@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPurchaseOrder } from "@/app/actions/purchase";
+import { createQuickProduct } from "@/app/actions/product";
 import AiScannerButton from "@/app/components/AiScannerButton";
 
 export default function PurchaseOrderForm({ suppliers, products, accounts }: { suppliers: any[], products: any[], accounts: any[] }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localProducts, setLocalProducts] = useState(products);
 
   // Form State
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || "");
@@ -28,7 +30,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
 
     if (data.items && data.items.length > 0) {
       const newItems = data.items.map((aiItem: any) => {
-        const matchedProduct = products.find(p => p.nameEn.toLowerCase().includes(aiItem.name.toLowerCase()));
+        const matchedProduct = localProducts.find(p => p.nameEn.toLowerCase().includes(aiItem.name.toLowerCase()));
         return {
           productId: matchedProduct?.id || "",
           tempName: matchedProduct ? "" : aiItem.name,
@@ -61,7 +63,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
     if (field === "productId") {
-      const product = products.find(p => p.id === value);
+      const product = localProducts.find(p => p.id === value);
       newItems[index] = {
         ...newItems[index],
         productId: value,
@@ -74,6 +76,26 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
       newItems[index] = { ...newItems[index], [field]: value };
     }
     setItems(newItems);
+  };
+
+  const handleQuickAdd = async (index: number, tempName: string, rate: number) => {
+    try {
+      const newProduct = await createQuickProduct(tempName, rate);
+      setLocalProducts([...localProducts, newProduct]);
+      
+      const newItems = [...items];
+      newItems[index] = {
+        ...newItems[index],
+        productId: newProduct.id,
+        tempName: "",
+        rate: newProduct.cost || 0,
+        uomId: newProduct.baseUomId || "",
+        barcode: ""
+      };
+      setItems(newItems);
+    } catch (err) {
+      alert("Failed to create product. Please ensure you have a Unit of Measure created.");
+    }
   };
 
   const subtotal = items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
@@ -98,7 +120,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
     // Prepare data for printing
     const selectedSupplier = suppliers.find(s => s.id === supplierId);
     const enrichedItems = items.map(item => {
-      const p = products.find(prod => prod.id === item.productId);
+      const p = localProducts.find(prod => prod.id === item.productId);
       return {
         ...item,
         productName: p?.nameEn || "Unknown",
@@ -195,14 +217,22 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
                     className="w-full px-2 py-1.5 border border-[#E2E8F0] rounded focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
                   >
                     <option value="">Select Product...</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.code} - {p.nameEn}</option>)}
+                    {localProducts.map(p => <option key={p.id} value={p.id}>{p.code} - {p.nameEn}</option>)}
                   </select>
                   {item.tempName && (
-                    <div className="mt-1.5 text-xs font-medium text-orange-600 bg-orange-50 p-1.5 rounded flex items-center gap-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      AI Scanned: "{item.tempName}". Please select a matching product.
+                    <div className="mt-1.5 p-2 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-md">
+                      <div className="flex items-center gap-1.5 mb-1.5 font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        AI Scanned: "{item.tempName}"
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="opacity-80">Product not found.</span>
+                        <button type="button" onClick={() => handleQuickAdd(index, item.tempName, item.rate)} className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded shadow-sm text-xs transition-colors">
+                          + Add as New Product
+                        </button>
+                      </div>
                     </div>
                   )}
                 </td>

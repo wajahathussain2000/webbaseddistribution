@@ -71,3 +71,35 @@ export async function createProduct(formData: FormData) {
   revalidatePath("/products");
   redirect("/products");
 }
+
+export async function createQuickProduct(nameEn: string, cost: number) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const userTenant = await prisma.tenantUser.findFirst({
+    where: { userId: session.user.id }
+  });
+  if (!userTenant) throw new Error("No tenant assigned to user");
+
+  const tenantId = userTenant.tenantId;
+
+  const uom = await prisma.unitOfMeasure.findFirst({ where: { tenantId } });
+  if (!uom) throw new Error("No Unit of Measure found for this tenant. Please create one first.");
+
+  const product = await prisma.product.create({
+    data: {
+      tenantId: tenantId,
+      code: `PROD-${Math.floor(Math.random() * 10000)}`,
+      nameEn,
+      type: "FMCG",
+      valuationMethod: "FIFO",
+      tradePrice: cost,
+      retailPrice: cost,
+      cost,
+      baseUomId: uom.id,
+      isActive: true,
+    }
+  });
+
+  return product;
+}
