@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
+export const maxDuration = 60;
+
 // Uses process.env.OPENAI_API_KEY automatically if set
 const openai = new OpenAI();
 

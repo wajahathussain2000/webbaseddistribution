@@ -7,14 +7,50 @@ export default function MobileScanPage({ params }: { params: Promise<{ id: strin
   const [status, setStatus] = useState<"IDLE" | "UPLOADING" | "SUCCESS" | "ERROR">("IDLE");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const compressImage = async (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 1000;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Compression failed"));
+          }, "image/jpeg", 0.6); // 60% quality is usually enough for OCR and reduces size significantly
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleAiScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setStatus("UPLOADING");
     try {
+      // Compress the image before uploading to bypass Vercel's 4.5MB Payload limit
+      const compressedBlob = await compressImage(file);
+      
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", compressedBlob, "invoice.jpg");
       formData.append("sessionId", id);
 
       const res = await fetch("/api/ocr", {
@@ -22,7 +58,11 @@ export default function MobileScanPage({ params }: { params: Promise<{ id: strin
         body: formData
       });
 
-      if (!res.ok) throw new Error("Failed to scan document");
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Server Error:", errText);
+        throw new Error("Failed to scan document");
+      }
       setStatus("SUCCESS");
     } catch (err) {
       console.error(err);
