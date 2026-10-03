@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import Link from "next/link";
+import PrintButton from "@/app/components/PrintButton";
 
 export default async function BalanceSheetPage() {
   const session = await auth();
@@ -77,9 +78,7 @@ export default async function BalanceSheetPage() {
             <p className="text-sm text-[#64748B] mt-1">Snapshot of Assets, Liabilities, and Equity.</p>
           </div>
         </div>
-        <button onClick={() => window.print()} className="bg-white border border-[#E2E8F0] px-4 py-2 rounded-md shadow-sm text-sm font-semibold hover:bg-slate-50 transition-colors">
-          Print Report
-        </button>
+        <PrintButton />
       </div>
 
       <div className="bg-white border border-[#E2E8F0] rounded-xl shadow-sm overflow-hidden p-8">
