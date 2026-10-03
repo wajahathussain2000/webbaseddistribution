@@ -2707,3 +2707,12 @@ model DocumentTemplate {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
+
+model MobileScanSession {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  extractedData String?  @db.Text // JSON result from AI
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface AiScannerButtonProps {
   onScanComplete: (data: any) => void;
@@ -9,12 +9,15 @@ interface AiScannerButtonProps {
 
 export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI Document" }: AiScannerButtonProps) {
   const [isScanning, setIsScanning] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAiScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setShowOptions(false);
     setIsScanning(true);
     try {
       const formData = new FormData();
@@ -37,8 +40,54 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
     }
   };
 
+  const startMobileScan = async () => {
+    setShowOptions(false);
+    try {
+      const res = await fetch("/api/mobile-scan/session", { method: "POST" });
+      const data = await res.json();
+      if (data.sessionId) {
+        setQrSessionId(data.sessionId);
+      }
+    } catch (err) {
+      alert("Failed to generate QR Code. Please try again.");
+    }
+  };
+
+  // Poll the session
+  useEffect(() => {
+    let interval: any;
+    if (qrSessionId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/mobile-scan/session?id=${qrSessionId}`);
+          if (res.ok) {
+            const session = await res.json();
+            if (session.status === "COMPLETED" && session.extractedData) {
+              setQrSessionId(null); // Close modal
+              clearInterval(interval);
+              try {
+                const parsed = JSON.parse(session.extractedData);
+                onScanComplete(parsed);
+              } catch (e) {
+                console.error("Failed to parse extracted data");
+              }
+            }
+          }
+        } catch (e) {
+          // ignore network errors on polling
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [qrSessionId, onScanComplete]);
+
+  // Use window.location.origin for absolute QR URL
+  const qrUrl = typeof window !== "undefined" && qrSessionId 
+    ? `${window.location.origin}/mobile-scan/${qrSessionId}`
+    : "";
+
   return (
-    <>
+    <div className="relative">
       <input 
         type="file" 
         accept="image/*" 
@@ -47,9 +96,10 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
         ref={fileInputRef}
         onChange={handleAiScan}
       />
+      
       <button 
         type="button" 
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => setShowOptions(!showOptions)}
         disabled={isScanning}
         className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm border border-purple-200 disabled:opacity-50"
       >
@@ -71,6 +121,67 @@ export default function AiScannerButton({ onScanComplete, buttonText = "Scan AI 
           </>
         )}
       </button>
-    </>
+
+      {/* Options Dropdown */}
+      {showOptions && (
+        <div className="absolute right-0 top-12 mt-1 w-56 bg-white border border-slate-200 shadow-xl rounded-xl overflow-hidden z-50">
+          <button
+            onClick={() => { setShowOptions(false); fileInputRef.current?.click(); }}
+            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center gap-3 border-b border-slate-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload from PC / Device
+          </button>
+          <button
+            onClick={startMobileScan}
+            className="w-full text-left px-4 py-3 hover:bg-purple-50 text-purple-700 text-sm font-medium flex items-center gap-3"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Scan with Mobile (QR)
+          </button>
+        </div>
+      )}
+
+      {/* QR Modal */}
+      {qrSessionId && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center relative animate-in fade-in zoom-in duration-200">
+            <button 
+              onClick={() => setQrSessionId(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full p-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Scan with Mobile</h3>
+            <p className="text-slate-500 text-sm mb-6">Open your phone's camera and scan this QR code to capture the invoice.</p>
+            
+            <div className="bg-white p-4 rounded-xl border-2 border-purple-100 mx-auto inline-block">
+              {qrUrl && (
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&color=6B21A8`} 
+                  alt="QR Code" 
+                  className="w-48 h-48"
+                />
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-3 text-purple-600 font-medium">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Waiting for scan...
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

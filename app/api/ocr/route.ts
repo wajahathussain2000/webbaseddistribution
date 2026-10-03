@@ -53,6 +53,19 @@ If any fields cannot be found, provide reasonable defaults (e.g., empty string f
     const jsonStr = response.choices[0].message.content || "{}";
     const parsed = JSON.parse(jsonStr);
 
+    const sessionId = formData.get("sessionId") as string;
+    if (sessionId) {
+      import("@/lib/prisma").then(async ({ prisma }) => {
+        await prisma.mobileScanSession.update({
+          where: { id: sessionId },
+          data: {
+            status: "COMPLETED",
+            extractedData: jsonStr
+          }
+        });
+      }).catch(e => console.error("Failed to update session:", e));
+    }
+
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("OCR API Error:", error);
