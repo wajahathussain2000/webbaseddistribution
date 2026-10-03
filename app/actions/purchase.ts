@@ -80,7 +80,6 @@ export async function createQuickSupplier(name: string) {
       tenantId: userTenant.tenantId,
       code: `SUP-${Math.floor(Math.random() * 10000)}`,
       name,
-      isActive: true,
     }
   });
 
