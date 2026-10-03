@@ -31,6 +31,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
         const matchedProduct = products.find(p => p.nameEn.toLowerCase().includes(aiItem.name.toLowerCase()));
         return {
           productId: matchedProduct?.id || "",
+          tempName: matchedProduct ? "" : aiItem.name,
           qty: aiItem.qty || 1,
           rate: aiItem.rate || matchedProduct?.cost || 0,
           uomId: matchedProduct?.baseUomId || "",
@@ -44,11 +45,11 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
 
   // Dynamic Line Items State
   const [items, setItems] = useState([
-    { productId: "", qty: 1, rate: 0, uomId: "", barcode: "" }
+    { productId: "", tempName: "", qty: 1, rate: 0, uomId: "", barcode: "" }
   ]);
 
   const addItem = () => {
-    setItems([...items, { productId: "", qty: 1, rate: 0, uomId: "", barcode: "" }]);
+    setItems([...items, { productId: "", tempName: "", qty: 1, rate: 0, uomId: "", barcode: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -64,6 +65,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
       newItems[index] = {
         ...newItems[index],
         productId: value,
+        tempName: "", // Clear temp name once a product is selected
         rate: product ? product.cost || product.tradePrice : 0,
         uomId: product ? product.baseUomId : "",
         barcode: product && product.barcode ? product.barcode : ""
@@ -79,7 +81,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplierId || items.some(i => !i.productId)) {
-      alert("Please select a supplier and ensure all items have a product selected.");
+      alert("Please select a supplier and ensure all items have a valid product selected from the dropdown.");
       return;
     }
     setIsSubmitting(true);
@@ -186,7 +188,7 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
           </thead>
           <tbody>
             {items.map((item, index) => (
-              <tr key={index} className="border-b border-[#E2E8F0]">
+              <tr key={index} className="border-b border-[#E2E8F0] align-top">
                 <td className="p-2 border-x border-[#E2E8F0]">
                   <select
                     value={item.productId} onChange={e => updateItem(index, 'productId', e.target.value)} required
@@ -195,6 +197,14 @@ export default function PurchaseOrderForm({ suppliers, products, accounts }: { s
                     <option value="">Select Product...</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.code} - {p.nameEn}</option>)}
                   </select>
+                  {item.tempName && (
+                    <div className="mt-1.5 text-xs font-medium text-orange-600 bg-orange-50 p-1.5 rounded flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      AI Scanned: "{item.tempName}". Please select a matching product.
+                    </div>
+                  )}
                 </td>
                 <td className="p-2 border-x border-[#E2E8F0]">
                   <input type="text" placeholder="Scan/Enter" value={item.barcode || ""} onChange={e => updateItem(index, 'barcode', e.target.value)} className="w-full px-2 py-1.5 border border-[#E2E8F0] rounded focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm font-mono" />
