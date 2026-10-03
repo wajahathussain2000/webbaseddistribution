@@ -7,10 +7,42 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) return <div>Unauthorized</div>;
 
-  const userTenant = await prisma.tenantUser.findFirst({
+  let userTenant = await prisma.tenantUser.findFirst({
     where: { userId: session.user.id }
   });
-  if (!userTenant) return <div>No tenant assigned</div>;
+
+  // Self-healing for MVP: If user has no tenant, assign them to the first available tenant, or create one.
+  if (!userTenant) {
+    let firstTenant = await prisma.tenant.findFirst();
+    if (!firstTenant) {
+      firstTenant = await prisma.tenant.create({
+        data: {
+          name: "Default Tenant",
+          subscriptionPlan: "ENTERPRISE",
+        }
+      });
+    }
+
+    // Assign a default role or get the first one
+    let role = await prisma.role.findFirst({ where: { tenantId: firstTenant.id, name: "Admin" } });
+    if (!role) {
+      role = await prisma.role.create({
+        data: {
+          tenantId: firstTenant.id,
+          name: "Admin"
+        }
+      });
+    }
+
+    userTenant = await prisma.tenantUser.create({
+      data: {
+        userId: session.user.id,
+        tenantId: firstTenant.id,
+        roleId: role.id
+      }
+    });
+  }
+
   const tenantId = userTenant.tenantId;
 
   // Real-time Queries
